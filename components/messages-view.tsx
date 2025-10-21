@@ -1,105 +1,34 @@
 "use client"
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+
+import { useMemo, useState } from "react"
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ChevronRight, Send, Paperclip, Search, MoreVertical } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { ChevronRight, MoreVertical, Paperclip, Search, Send } from "lucide-react"
 
-const conversations = [
-  {
-    id: 1,
-    name: "María González",
-    role: "Directora de Proyecto",
-    avatar: "/placeholder.svg?height=40&width=40",
-    lastMessage: "El informe de progreso está listo para revisión",
-    time: "10:30",
-    unread: 2,
-    online: true,
-  },
-  {
-    id: 2,
-    name: "Carlos Ruiz",
-    role: "Arquitecto Principal",
-    avatar: "/placeholder.svg?height=40&width=40",
-    lastMessage: "He actualizado los planos según tus comentarios",
-    time: "Ayer",
-    unread: 0,
-    online: true,
-  },
-  {
-    id: 3,
-    name: "Ana Martínez",
-    role: "Ingeniera Estructural",
-    avatar: "/placeholder.svg?height=40&width=40",
-    lastMessage: "La inspección está programada para el viernes",
-    time: "Ayer",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: 4,
-    name: "Roberto Silva",
-    role: "Maestro de Obra",
-    avatar: "/placeholder.svg?height=40&width=40",
-    lastMessage: "Fotos del progreso de hoy adjuntas",
-    time: "2 días",
-    unread: 1,
-    online: true,
-  },
-]
+import type { MessagesData } from "@/lib/supabase/queries"
 
-const messages = [
-  {
-    id: 1,
-    sender: "María González",
-    content: "Hola Juan, espero que estés bien. Quería informarte que hemos completado la instalación de la pérgola.",
-    time: "09:15",
-    isOwn: false,
-  },
-  {
-    id: 2,
-    sender: "Juan Pérez",
-    content: "Excelente noticia! ¿Cuándo podré ver el resultado?",
-    time: "09:20",
-    isOwn: true,
-  },
-  {
-    id: 3,
-    sender: "María González",
-    content:
-      "Te he enviado algunas fotos al apartado de galería. La estructura quedó perfecta y ya aplicamos el tratamiento de protección.",
-    time: "09:25",
-    isOwn: false,
-  },
-  {
-    id: 4,
-    sender: "Juan Pérez",
-    content: "Las fotos se ven increíbles! Estoy muy contento con el resultado.",
-    time: "09:30",
-    isOwn: true,
-  },
-  {
-    id: 5,
-    sender: "María González",
-    content:
-      "Me alegra mucho que te guste. Ahora comenzaremos con el sistema de riego. El informe de progreso está listo para revisión.",
-    time: "10:30",
-    isOwn: false,
-  },
-]
-
-export function MessagesView() {
-  const [selectedConversation, setSelectedConversation] = useState(conversations[0])
+export function MessagesView({ data }: { data: MessagesData }) {
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(data.conversations[0]?.id ?? null)
   const [messageInput, setMessageInput] = useState("")
+
+  const selectedConversation = useMemo(
+    () => data.conversations.find((conversation) => conversation.id === selectedConversationId) ?? data.conversations[0],
+    [data.conversations, selectedConversationId],
+  )
+
+  const messages = selectedConversation
+    ? data.messagesByConversation[selectedConversation.id] ?? []
+    : []
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
+      <header>
         <div className="flex items-center gap-2 text-sm text-[#6b7280]">
           <span>Dashboard</span>
           <ChevronRight className="h-4 w-4" />
@@ -109,11 +38,9 @@ export function MessagesView() {
           <h1 className="font-serif text-3xl font-bold text-[#2f4f4f] sm:text-4xl">Mensajes</h1>
           <p className="mt-2 text-lg text-[#6b7280]">Comunícate con tu equipo de construcción</p>
         </div>
-      </div>
+      </header>
 
-      {/* Messages Interface */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Conversations List */}
+      <section className="grid gap-6 lg:grid-cols-3">
         <Card className="border-[#e8e6e0] lg:col-span-1">
           <CardHeader>
             <CardTitle className="font-serif text-xl text-[#2f4f4f]">Conversaciones</CardTitle>
@@ -125,39 +52,43 @@ export function MessagesView() {
           <CardContent className="p-0">
             <ScrollArea className="h-[600px]">
               <div className="space-y-1 p-4">
-                {conversations.map((conversation) => (
+                {data.conversations.map((conversation) => (
                   <button
                     key={conversation.id}
-                    onClick={() => setSelectedConversation(conversation)}
+                    onClick={() => setSelectedConversationId(conversation.id)}
                     className={`w-full rounded-lg p-3 text-left transition-colors ${
-                      selectedConversation.id === conversation.id ? "bg-[#f4f1ea]" : "hover:bg-[#faf8f3]"
+                      selectedConversation?.id === conversation.id ? "bg-[#f4f1ea]" : "hover:bg-[#faf8f3]"
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="relative flex-shrink-0">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src={conversation.avatar || "/placeholder.svg"} />
+                          <AvatarImage src={conversation.avatarUrl || "/placeholder.svg?height=40&width=40"} />
                           <AvatarFallback className="bg-[#c6b89e] text-[#2f4f4f]">
                             {conversation.name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        {conversation.online && (
+                        {conversation.status === "online" && (
                           <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[#2f4f4f] truncate">{conversation.name}</p>
-                            <p className="text-xs text-[#6b7280] truncate">{conversation.role}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-[#2f4f4f]">{conversation.name}</p>
+                            <p className="truncate text-xs text-[#6b7280]">{conversation.role}</p>
                           </div>
-                          <span className="text-xs text-[#9ca3af] whitespace-nowrap">{conversation.time}</span>
+                          <span className="whitespace-nowrap text-xs text-[#9ca3af]">
+                            {formatConversationTime(conversation.lastMessageAt)}
+                          </span>
                         </div>
                         <div className="mt-1 flex items-center justify-between gap-2">
-                          <p className="text-sm text-[#6b7280] truncate">{conversation.lastMessage}</p>
-                          {conversation.unread > 0 && (
+                          <p className="truncate text-sm text-[#6b7280]">
+                            {conversation.lastMessagePreview ?? "Sin mensajes recientes"}
+                          </p>
+                          {conversation.unreadCount > 0 && (
                             <Badge className="h-5 min-w-[20px] bg-[#2f4f4f] px-1.5 text-xs text-white">
-                              {conversation.unread}
+                              {conversation.unreadCount}
                             </Badge>
                           )}
                         </div>
@@ -165,142 +96,143 @@ export function MessagesView() {
                     </div>
                   </button>
                 ))}
+                {data.conversations.length === 0 && (
+                  <p className="p-4 text-sm text-[#6b7280]">Aún no tienes conversaciones activas.</p>
+                )}
               </div>
             </ScrollArea>
           </CardContent>
         </Card>
 
-        {/* Chat Area */}
         <Card className="border-[#e8e6e0] lg:col-span-2">
-          <CardHeader className="border-b border-[#e8e6e0]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={selectedConversation.avatar || "/placeholder.svg"} />
-                    <AvatarFallback className="bg-[#c6b89e] text-[#2f4f4f]">
-                      {selectedConversation.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {selectedConversation.online && (
-                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
-                  )}
-                </div>
-                <div>
-                  <CardTitle className="text-lg text-[#2f4f4f]">{selectedConversation.name}</CardTitle>
-                  <CardDescription className="text-sm">{selectedConversation.role}</CardDescription>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" className="text-[#6b7280]">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            <ScrollArea className="h-[480px] p-6">
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.isOwn ? "justify-end" : "justify-start"}`}>
-                    <div className={`flex gap-3 max-w-[80%] ${message.isOwn ? "flex-row-reverse" : "flex-row"}`}>
-                      {!message.isOwn && (
-                        <Avatar className="h-8 w-8 flex-shrink-0">
-                          <AvatarImage src={selectedConversation.avatar || "/placeholder.svg"} />
-                          <AvatarFallback className="bg-[#c6b89e] text-[#2f4f4f] text-xs">
-                            {selectedConversation.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
+          {selectedConversation ? (
+            <>
+              <CardHeader className="border-b border-[#e8e6e0]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={selectedConversation.avatarUrl || "/placeholder.svg?height=40&width=40"} />
+                        <AvatarFallback className="bg-[#c6b89e] text-[#2f4f4f]">
+                          {selectedConversation.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {selectedConversation.status === "online" && (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
                       )}
-                      <div className={`space-y-1 ${message.isOwn ? "items-end" : "items-start"} flex flex-col`}>
-                        <div
-                          className={`rounded-2xl px-4 py-2.5 ${
-                            message.isOwn
-                              ? "bg-[#2f4f4f] text-white"
-                              : "bg-[#f4f1ea] text-[#2f4f4f] border border-[#e8e6e0]"
-                          }`}
-                        >
-                          <p className="text-sm leading-relaxed">{message.content}</p>
-                        </div>
-                        <span className="text-xs text-[#9ca3af] px-2">{message.time}</span>
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg text-[#2f4f4f]">{selectedConversation.name}</CardTitle>
+                      <CardDescription className="text-sm">{selectedConversation.role}</CardDescription>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="text-[#6b7280]">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-0">
+                <div className="flex h-[460px] flex-col">
+                  <ScrollArea className="flex-1 px-6 py-6">
+                    <div className="space-y-6">
+                      {messages.map((message) => (
+                        <MessageBubble
+                          key={message.id}
+                          content={message.content}
+                          time={formatMessageTime(message.sentAt)}
+                          isOwn={message.senderType === "client"}
+                          senderName={
+                            message.senderType === "team_member" ? selectedConversation.name : "Tú"
+                          }
+                        />
+                      ))}
+                      {messages.length === 0 && (
+                        <p className="text-sm text-[#6b7280]">No hay mensajes en esta conversación todavía.</p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                  <div className="border-t border-[#e8e6e0] bg-[#faf8f3] p-4">
+                    <div className="space-y-3">
+                      <Textarea
+                        placeholder={`Escribe un mensaje para ${selectedConversation.name}...`}
+                        value={messageInput}
+                        onChange={(event) => setMessageInput(event.target.value)}
+                        className="min-h-[120px] resize-none border-[#e8e6e0] bg-white focus-visible:ring-[#2f4f4f]"
+                      />
+                      <div className="flex items-center justify-between">
+                        <Button variant="ghost" size="icon" className="text-[#6b7280]">
+                          <Paperclip className="h-5 w-5" />
+                        </Button>
+                        <Button className="bg-[#2f4f4f] text-white hover:bg-[#1f3535]">
+                          Enviar
+                          <Send className="ml-2 h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-
-            {/* Message Input */}
-            <div className="border-t border-[#e8e6e0] p-4">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  setMessageInput("")
-                }}
-                className="flex gap-2"
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="flex-shrink-0 text-[#6b7280] hover:text-[#2f4f4f]"
-                >
-                  <Paperclip className="h-5 w-5" />
-                </Button>
-                <Textarea
-                  placeholder="Escribe tu mensaje..."
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  className="min-h-[44px] max-h-[120px] resize-none border-[#e8e6e0] focus-visible:ring-[#2f4f4f]"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault()
-                      setMessageInput("")
-                    }
-                  }}
-                />
-                <Button type="submit" size="icon" className="flex-shrink-0 bg-[#2f4f4f] text-white hover:bg-[#1f3535]">
-                  <Send className="h-5 w-5" />
-                </Button>
-              </form>
-              <p className="mt-2 text-xs text-[#9ca3af]">Presiona Enter para enviar, Shift + Enter para nueva línea</p>
-            </div>
-          </CardContent>
+                </div>
+              </CardContent>
+            </>
+          ) : (
+            <CardContent className="flex h-full items-center justify-center">
+              <p className="text-sm text-[#6b7280]">Selecciona una conversación para comenzar.</p>
+            </CardContent>
+          )}
         </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <Card className="border-[#e8e6e0]">
-        <CardHeader>
-          <CardTitle className="font-serif text-xl text-[#2f4f4f]">Acciones Rápidas</CardTitle>
-          <CardDescription>Contacta directamente con miembros específicos del equipo</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {conversations.map((person) => (
-              <Button
-                key={person.id}
-                variant="outline"
-                className="h-auto justify-start gap-3 border-[#e8e6e0] p-4 text-left hover:bg-[#f4f1ea] bg-transparent"
-                onClick={() => setSelectedConversation(person)}
-              >
-                <div className="relative flex-shrink-0">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={person.avatar || "/placeholder.svg"} />
-                    <AvatarFallback className="bg-[#c6b89e] text-[#2f4f4f]">{person.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  {person.online && (
-                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#2f4f4f] truncate">{person.name}</p>
-                  <p className="text-xs text-[#6b7280] truncate">{person.role}</p>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      </section>
     </div>
   )
+}
+
+function MessageBubble({
+  content,
+  time,
+  senderName,
+  isOwn,
+}: {
+  content: string
+  time: string
+  senderName: string
+  isOwn: boolean
+}) {
+  return (
+    <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+      <div
+        className={`max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+          isOwn ? "rounded-br-sm bg-[#2f4f4f] text-white" : "rounded-bl-sm bg-white text-[#2f4f4f]"
+        }`}
+      >
+        {!isOwn && <p className="mb-1 text-xs font-semibold text-[#2f4f4f]">{senderName}</p>}
+        <p>{content}</p>
+        <p className={`${isOwn ? "text-white/70" : "text-[#9ca3af]"} mt-1 text-xs`}>{time}</p>
+      </div>
+    </div>
+  )
+}
+
+function formatConversationTime(value: string | null): string {
+  if (!value) return "Sin fecha"
+  const date = new Date(value)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffHours = diffMs / (1000 * 60 * 60)
+
+  if (diffHours < 24) {
+    return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
+  }
+
+  if (diffHours < 48) {
+    return "Ayer"
+  }
+
+  if (diffHours < 24 * 7) {
+    return `${Math.floor(diffHours / 24)} día${Math.floor(diffHours / 24) === 1 ? "" : "s"}`
+  }
+
+  return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" })
+}
+
+function formatMessageTime(value: string): string {
+  return new Date(value).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
 }

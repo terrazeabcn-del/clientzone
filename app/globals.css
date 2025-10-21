@@ -29,6 +29,8 @@
   --input: var(--color-input-bg);
   --ring: var(--color-primary);
   --radius: 1.25rem;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-heading: "Montserrat", "Poppins", system-ui, sans-serif;
 }
 
 .dark {
@@ -100,7 +102,17 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body), system-ui, -apple-system, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading), system-ui, -apple-system, sans-serif;
   }
 }
 
@@ -195,6 +207,51 @@ body {
 
 .animate-scale-in {
   animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-glass-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.25) 45%,
+    rgba(255, 255, 255, 0.05) 90%
+  );
+  transform: translateX(-120%);
+  transition: transform 0.6s ease;
+}
+
+.liquid-glass-shimmer:hover::after {
+  transform: translateX(120%);
+}
+
+.gallery-glass-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(198, 184, 158, 0.12));
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.gallery-card:hover .gallery-glass-overlay {
+  opacity: 1;
+}
+
+.font-body {
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
+}
+
+.font-heading {
+  font-family: var(--font-heading), system-ui, -apple-system, sans-serif;
 }
 
 /* Hover effects sutiles estilo Apple */
